@@ -60,9 +60,11 @@ function read(applicationName, credentialFolderPath, credentialJSONPath [, appli
   * @param {String} bodyText - Corpo email
   * @param {java.io.file} file - Arquivo/Array de arquivos a ser enviado
   * @param {String} base64String - Base 64 referente ao arquivo de assinatura do e-mail (PNG)
+  * @param {Array} lstMailsCC - Array com os e-mails em copia (Array string)
   * @example
   * send('Gmail API SUA_APP', './credentials', './credentials/credentials.json', "mauriciovilela@softbox.com.br","mauriciovilela@softbox.com.br","Assunto", "Corpo", new java.io.File("/home/arquivo.pdf"))
   * @returns {Object} - Retorna um objeto com informacoes referentes ao e-mail enviado
  */
+ 
 function send (applicationName, credentialFolderPath, credentialJSONPath, to, from, subject, bodyText, file, base64String)
 ```
