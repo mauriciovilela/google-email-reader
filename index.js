@@ -7,7 +7,6 @@ var GeneralSecurityException = Java.type('java.security.GeneralSecurityException
 var Arrays = Java.type('java.util.Arrays')
 var List = Java.type('java.util.List')
 var Stream = Java.type('java.util.stream.Stream')
-var JString = Java.type('java.lang.String')
 
 var Credential = Java.type('com.google.api.client.auth.oauth2.Credential')
 var AuthorizationCodeInstalledApp = Java.type('com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp')
@@ -219,7 +218,7 @@ function read (applicationName, credentialFolderPath, credentialJSONPath, applic
   }
 }
 
-function createEmailWithAttachment(to, from, subject, bodyText, objFile, base64String) {
+function createEmailWithAttachment(to, from, subject, bodyText, objFile, base64String, lstMailsCC) {
   var props = new Properties()
   var session = Session.getInstance(props, null)
 
@@ -227,15 +226,19 @@ function createEmailWithAttachment(to, from, subject, bodyText, objFile, base64S
 
   email.setFrom(new InternetAddress(from))
   email.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(to))
+  lstMailsCC.forEach(function(emailCC, index) { 
+    email.addRecipient(javax.mail.Message.RecipientType.CC, new InternetAddress(emailCC))
+  });
   email.setSubject(subject)
 
   var multipart = new MimeMultipart("related")
 
-  var textPart = new MimeBodyPart();
-  textPart.setText(bodyText + "<br><br> <img src=\"cid:imagem\" /></div>", "US-ASCII", "html");
-  multipart.addBodyPart(textPart);
+  var imagePartCID = new MimeBodyPart()
+  imagePartCID.setText(bodyText + "<br><br> <img src=\"cid:imagem\" /></div>", "US-ASCII", "html")
+  multipart.addBodyPart(imagePartCID)
 
   if (base64String) {
+    
     var imagePart = new MimeBodyPart()
     imagePart.attachFile(base64ToFile(base64String))
     imagePart.setContentID("<imagem>")
@@ -294,12 +297,13 @@ function createMessageWithEmail(emailContent) {
   * @param {String} subject - Assunto
   * @param {String} bodyText - Corpo email
   * @param {java.io.file} file - Arquivo/Array de arquivos a ser enviado
-  * @param {String} base64String - Base 64 referente ao arquivo de assinatura do e-mail (PNG)
+  * @param {String} base64String - Base 64 referente ao arquivo de assinatura do e-mail (.PNG)
+  * @param {Array} lstMailsCC - Array com os e-mails em copia (Array string)
   * @example
   * send('Gmail API SUA_APP', './credentials', './credentials/credentials.json', "mauriciovilela@softbox.com.br","mauriciovilela@softbox.com.br","Assunto", "Corpo", new java.io.File("/home/arquivo.pdf"))
   * @returns {Object} - Retorna um objeto com informacoes referentes ao e-mail enviado
  */
-function send (applicationName, credentialFolderPath, credentialJSONPath, to, from, subject, bodyText, file, base64String) {
+function send (applicationName, credentialFolderPath, credentialJSONPath, to, from, subject, bodyText, file, base64String, lstMailsCC) {
   var scopes = [
     GmailScopes.MAIL_GOOGLE_COM,
     GmailScopes.GMAIL_METADATA,
@@ -314,7 +318,7 @@ function send (applicationName, credentialFolderPath, credentialJSONPath, to, fr
 
     var user = "me"
 
-    var emailContent = createEmailWithAttachment(to, from, subject, bodyText, file, base64String)
+    var emailContent = createEmailWithAttachment(to, from, subject, bodyText, file, base64String, lstMailsCC)
     var message = createMessageWithEmail(emailContent)
 
     message = service.users().messages().send(user, message).execute()
