@@ -226,13 +226,16 @@ function createEmailWithAttachment(to, from, subject, bodyText, objFile, base64S
 
   email.setFrom(new InternetAddress(from))
   email.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(to))
-  lstMailsCC.forEach(function(emailCC, index) { 
-    email.addRecipient(javax.mail.Message.RecipientType.CC, new InternetAddress(emailCC))
-  });
+  if (lstMailsCC) {
+    lstMailsCC.forEach(function(emailCC, index) { 
+      email.addRecipient(javax.mail.Message.RecipientType.CC, new InternetAddress(emailCC))
+    })
+  }
   email.setSubject(subject)
 
   var multipart = new MimeMultipart("related")
 
+  bodyText = bodyText.replace(/\n/g, "<br />")
   var imagePartCID = new MimeBodyPart()
   imagePartCID.setText(bodyText + "<br><br> <img src=\"cid:imagem\" /></div>", "US-ASCII", "html")
   multipart.addBodyPart(imagePartCID)
