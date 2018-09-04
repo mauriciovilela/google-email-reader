@@ -7,6 +7,7 @@ var GeneralSecurityException = Java.type('java.security.GeneralSecurityException
 var Arrays = Java.type('java.util.Arrays')
 var List = Java.type('java.util.List')
 var Stream = Java.type('java.util.stream.Stream')
+var JString = Java.type('java.lang.String')
 
 var Credential = Java.type('com.google.api.client.auth.oauth2.Credential')
 var AuthorizationCodeInstalledApp = Java.type('com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp')
@@ -42,6 +43,8 @@ var InternetAddress = Java.type('javax.mail.internet.InternetAddress')
 var MimeBodyPart = Java.type('javax.mail.internet.MimeBodyPart')
 var MimeMessage = Java.type('javax.mail.internet.MimeMessage')
 var MimeMultipart = Java.type('javax.mail.internet.MimeMultipart')
+var ByteArrayDataSource = Java.type('javax.mail.util.ByteArrayDataSource')
+var FileOutputStream = Java.type('java.io.FileOutputStream')
 
 var JSON_FACTORY = JacksonFactory.getDefaultInstance()
 
@@ -216,7 +219,7 @@ function read (applicationName, credentialFolderPath, credentialJSONPath, applic
   }
 }
 
-function createEmailWithAttachment(to, from, subject, bodyText, objFile) {
+function createEmailWithAttachment(to, from, subject, bodyText, objFile, base64String) {
   var props = new Properties()
   var session = Session.getInstance(props, null)
 
@@ -226,23 +229,41 @@ function createEmailWithAttachment(to, from, subject, bodyText, objFile) {
   email.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(to))
   email.setSubject(subject)
 
-  var mimeBodyPart = new MimeBodyPart()
-  mimeBodyPart.setText(bodyText)
+  var multipart = new MimeMultipart("related")
 
-  var multipart = new MimeMultipart()
-  multipart.addBodyPart(mimeBodyPart)
+  var textPart = new MimeBodyPart();
+  textPart.setText(bodyText + "<br><br> <img src=\"cid:imagem\" /></div>", "US-ASCII", "html");
+  multipart.addBodyPart(textPart);
 
-  if (Array.isArray(objFile)) {
-    for (var i in objFile) {
-      addAttachment(multipart, objFile[i])
+  if (base64String) {
+    var imagePart = new MimeBodyPart()
+    imagePart.attachFile(base64ToFile(base64String))
+    imagePart.setContentID("<imagem>")
+    imagePart.setDisposition("inline")
+    multipart.addBodyPart(imagePart)
+  }
+
+  if (objFile) {
+    if (Array.isArray(objFile)) {
+      for (var i in objFile) {
+        addAttachment(multipart, objFile[i])
+      }
+    } else {
+      addAttachment(multipart, objFile)
     }
-  } else {
-    addAttachment(multipart, objFile)
   }
 
   email.setContent(multipart)
 
   return email
+}
+
+function base64ToFile(base64String) {
+  var pathFile = "/tmp/assinatura.png"
+  var imageOutFile = new FileOutputStream(pathFile)
+  var imageByteArray = Base64.decodeBase64(base64String)
+  imageOutFile.write(imageByteArray)
+  return new File(pathFile)
 }
 
 function addAttachment(multipart, file)
@@ -272,12 +293,13 @@ function createMessageWithEmail(emailContent) {
   * @param {String} from - Email origem 
   * @param {String} subject - Assunto
   * @param {String} bodyText - Corpo email
-  * @param {java.io.file} file - Arquivo a ser enviado
+  * @param {java.io.file} file - Arquivo/Array de arquivos a ser enviado
+  * @param {String} base64String - Base 64 referente ao arquivo de assinatura do e-mail (PNG)
   * @example
   * send('Gmail API SUA_APP', './credentials', './credentials/credentials.json', "mauriciovilela@softbox.com.br","mauriciovilela@softbox.com.br","Assunto", "Corpo", new java.io.File("/home/arquivo.pdf"))
   * @returns {Object} - Retorna um objeto com informacoes referentes ao e-mail enviado
  */
-function send (applicationName, credentialFolderPath, credentialJSONPath, to, from, subject, bodyText, file) {
+function send (applicationName, credentialFolderPath, credentialJSONPath, to, from, subject, bodyText, file, base64String) {
   var scopes = [
     GmailScopes.MAIL_GOOGLE_COM,
     GmailScopes.GMAIL_METADATA,
@@ -292,7 +314,7 @@ function send (applicationName, credentialFolderPath, credentialJSONPath, to, fr
 
     var user = "me"
 
-    var emailContent = createEmailWithAttachment(to, from, subject, bodyText, file)
+    var emailContent = createEmailWithAttachment(to, from, subject, bodyText, file, base64String)
     var message = createMessageWithEmail(emailContent)
 
     message = service.users().messages().send(user, message).execute()
