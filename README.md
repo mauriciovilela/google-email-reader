@@ -50,7 +50,6 @@ googleEmailReader.read(
 
 function read(applicationName, credentialFolderPath, credentialJSONPath [, applicationScopes, applicationUser])
 
-```javascript
 /**
   * @param {String} applicationName - nome da aplicacao criada no Google Console
   * @param {String} credentialFolderPath - caminho para a pasta "credentials" da sua aplicacao, onde sera salvo o binario StoredCredentials
